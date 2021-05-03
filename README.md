@@ -2,15 +2,13 @@
 
 Nome do grupo: 
 
-____________
+* Amigos_do_Mago_3a
 
 Nome dos integrantes: 
 
-* pessoa 1
-* pessoa 2
-* pessoa 3
-* pessoa 4
-
+* José Rafael M. Fernandes
+* Lucca Barufatti V. Sanches
+* Rafael Evangelista Monteiro
 
 Visite sempre o enunciado abaixo para atualizacões: 
 
