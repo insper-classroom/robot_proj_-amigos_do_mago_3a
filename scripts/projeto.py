@@ -77,8 +77,8 @@ def recebe_odometria(data):
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
-    quat = data.pose.pose.orientation
-    posicao_geral = [quat.x, quat.y]
+    #quat = data.pose.pose.orientation
+    posicao_geral = [x, y]
 
 def filtra_amarelo(img_in):
     global centro_list
@@ -179,7 +179,7 @@ if __name__=="__main__":
     zero = Twist(Vector3(0,0,0), Vector3(0,0,0))
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
     dire = Twist(Vector3(0.1,0,0), Vector3(0,0,-0.2))    
-    frente = Twist(Vector3(0.5,0,0), Vector3(0,0, 0.15))
+    frente = Twist(Vector3(0.3,0,0), Vector3(0,0, 0.1))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
@@ -215,9 +215,9 @@ if __name__=="__main__":
                     velocidade_saida.publish(gira30graus)
                     rospy.sleep(1)
                     area_aruco_100 = 0
-                    #posicao_aruco_100 = posicao_geral
-                    #passou_aruco_100 = True     
-                    #cont_100 += 1
+                    posicao_aruco_100 = posicao_geral
+                    passou_aruco_100 = True     
+                    
                
                 if area_aruco_200 > 15000:
                     velocidade_saida.publish(zero)
@@ -227,29 +227,29 @@ if __name__=="__main__":
                     velocidade_saida.publish(gira30graus)
                     rospy.sleep(1)
                     area_aruco_200 = 0
-                    #posicao_aruco_200 = posicao_geral
-                    #passou_aruco_200 = True
-                    #cont_200 += 1
+                    posicao_aruco_200 = posicao_geral
+                    passou_aruco_200 = True
+                    
+            
+                if passou_aruco_100:
+                    if posicao_geral[0] - 0.05 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.05 and posicao_geral[0] - 0.05 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.05:   
+                        print('100')
+                        velocidade_saida.publish(zero)
+                        rospy.sleep(2)
+                        velocidade_saida.publish(gira30graus)
+                        rospy.sleep(1)
+                    passou_aruco_100 = False
 
-                #if passou_aruco_100:
-                #    if posicao_geral[0] - 0.00001 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.00001 and posicao_geral[0] - 0.00001 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.00001:   
-                #        print('100')
-                #        velocidade_saida.publish(zero)
-                #        rospy.sleep(2)
-                #        velocidade_saida.publish(gira30graus)
-                #        rospy.sleep(1)
-                #    passou_aruco_100 = False
-
-            #    if passou_aruco_200 and cont_200 >= 2:
-            #        if posicao_geral[0] - 0.0009 <= posicao_aruco_200[0] <= posicao_geral[0]+  0.0009 and posicao_geral[1] - 0.00001 <= posicao_aruco_200[1] <= posicao_geral[1] + 0.00001:   
-            #            print('200')
-            #            velocidade_saida.publish(zero)
-            #            rospy.sleep(2)
-            #            velocidade_saida.publish(gira30graus)
-            #            rospy.sleep(1)
-            #        passou_aruco_200 = False
-        #    #
-        #    #print('0', posicao_geral[0], posicao_aruco_200[0], cont_200)
+                if passou_aruco_200:
+                    if posicao_geral[0] - 0.05 <= posicao_aruco_200[0] <= posicao_geral[0]+  0.05 and posicao_geral[1] - 0.05 <= posicao_aruco_200[1] <= posicao_geral[1] + 0.05:   
+                        print('200')
+                        velocidade_saida.publish(zero)
+                        rospy.sleep(2)
+                        velocidade_saida.publish(gira30graus)
+                        rospy.sleep(1)
+                    passou_aruco_200 = False
+        
+            #print('0', posicao_geral[0], posicao_aruco_200[0], cont_200)
             if anda:
                 if centro_list[0] <  centro_tela - margem_tela: 
                     velocidade_saida.publish(esq)
