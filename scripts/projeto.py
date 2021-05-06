@@ -180,7 +180,9 @@ if __name__=="__main__":
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
     dire = Twist(Vector3(0.1,0,0), Vector3(0,0,-0.2))    
     frente = Twist(Vector3(0.3,0,0), Vector3(0,0, 0.1))
+    andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,0.05))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
+    gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
     centro_tela  = 320
@@ -201,6 +203,28 @@ if __name__=="__main__":
             #for r in resultados:
                 #print(r)
             if pistaInteira:
+                if passou_aruco_100:
+                    if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
+                        if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):   
+                            velocidade_saida.publish(zero)
+                            rospy.sleep(2)
+                            velocidade_saida.publish(gira30graus)
+                            rospy.sleep(1)
+                            passou_aruco_100 = [0,0]
+                            passou_aruco_100 = False
+
+                if passou_aruco_200:
+                    if (posicao_geral[0] - 0.7 <= posicao_aruco_200[0] <= posicao_geral[0] +  0.7):
+                        print('primeiroif')
+                        if (posicao_geral[1] - 0.3 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.3):  
+                            print('segundoif') 
+                            velocidade_saida.publish(zero)
+                            rospy.sleep(2)
+                            velocidade_saida.publish(gira45graus)
+                            rospy.sleep(1)
+                            passou_aruco_200 = [0,0]
+                            passou_aruco_200 = False
+
                 if area_aruco_50 > 26000 or area_aruco_150 > 26000:
                     velocidade_saida.publish(zero)
                     rospy.sleep(2)
@@ -210,57 +234,40 @@ if __name__=="__main__":
                     area_aruco_150 = 0
 
                 if area_aruco_100 > 15000:
+                    posicao_aruco_100 = posicao_geral
                     velocidade_saida.publish(zero)
                     rospy.sleep(2)
                     velocidade_saida.publish(gira30graus)
                     rospy.sleep(1)
+                    velocidade_saida.publish(andaBifurcacao)
+                    rospy.sleep(2)
                     area_aruco_100 = 0
-                    posicao_aruco_100 = posicao_geral
                     passou_aruco_100 = True     
-                    
                
-                if area_aruco_200 > 15000:
+                if area_aruco_200 > 15500:
                     velocidade_saida.publish(zero)
-                    rospy.sleep(2),
+                    rospy.sleep(0.5),
                     velocidade_saida.publish(frente)
                     rospy.sleep(2)
-                    velocidade_saida.publish(gira30graus)
-                    rospy.sleep(1)
-                    area_aruco_200 = 0
                     posicao_aruco_200 = posicao_geral
+                    velocidade_saida.publish(gira45graus)
+                    rospy.sleep(1)
+                    velocidade_saida.publish(andaBifurcacao)
+                    rospy.sleep(3)
+                    area_aruco_200 = 0
                     passou_aruco_200 = True
-                    
-            
-                if passou_aruco_100:
-                    if posicao_geral[0] - 0.05 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.05 and posicao_geral[0] - 0.05 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.05:   
-                        print('100')
-                        velocidade_saida.publish(zero)
-                        rospy.sleep(2)
-                        velocidade_saida.publish(gira30graus)
-                        rospy.sleep(1)
-                    passou_aruco_100 = False
-
-                if passou_aruco_200:
-                    if posicao_geral[0] - 0.05 <= posicao_aruco_200[0] <= posicao_geral[0]+  0.05 and posicao_geral[1] - 0.05 <= posicao_aruco_200[1] <= posicao_geral[1] + 0.05:   
-                        print('200')
-                        velocidade_saida.publish(zero)
-                        rospy.sleep(2)
-                        velocidade_saida.publish(gira30graus)
-                        rospy.sleep(1)
-                    passou_aruco_200 = False
         
-            #print('0', posicao_geral[0], posicao_aruco_200[0], cont_200)
             if anda:
                 if centro_list[0] <  centro_tela - margem_tela: 
                     velocidade_saida.publish(esq)
-                    rospy.sleep(0.1)
+                    rospy.sleep(0.001)
 
                 elif centro_list[0] >  centro_tela + margem_tela: 
                     velocidade_saida.publish(dire)
-                    rospy.sleep(0.1)
+                    rospy.sleep(0.001)
                 else: 
                     velocidade_saida.publish(frente)
-                    rospy.sleep(0.1)
+                    rospy.sleep(0.001)
  
 
     except rospy.ROSInterruptException:
