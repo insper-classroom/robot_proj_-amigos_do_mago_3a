@@ -180,9 +180,10 @@ if __name__=="__main__":
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
     dire = Twist(Vector3(0.1,0,0), Vector3(0,0,-0.2))    
     frente = Twist(Vector3(0.3,0,0), Vector3(0,0, 0.1))
-    andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,0.05))
+    andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,-0.05))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
     gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
+    gira90graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi/2))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
     centro_tela  = 320
@@ -194,10 +195,6 @@ if __name__=="__main__":
     passou_aruco_100 = False
     passou_aruco_200 = False
 
-    #Contadores
-    cont_100 = 0
-    cont_200 = 0
-
     try:
         while not rospy.is_shutdown():
             #for r in resultados:
@@ -208,15 +205,15 @@ if __name__=="__main__":
                         if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):   
                             velocidade_saida.publish(zero)
                             rospy.sleep(2)
-                            velocidade_saida.publish(gira30graus)
+                            velocidade_saida.publish(gira45graus)
                             rospy.sleep(1)
                             passou_aruco_100 = [0,0]
                             passou_aruco_100 = False
 
                 if passou_aruco_200:
-                    if (posicao_geral[0] - 0.7 <= posicao_aruco_200[0] <= posicao_geral[0] +  0.7):
+                    if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
                         print('primeiroif')
-                        if (posicao_geral[1] - 0.3 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.3):  
+                        if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):  
                             print('segundoif') 
                             velocidade_saida.publish(zero)
                             rospy.sleep(2)
@@ -250,8 +247,8 @@ if __name__=="__main__":
                     velocidade_saida.publish(frente)
                     rospy.sleep(2)
                     posicao_aruco_200 = posicao_geral
-                    velocidade_saida.publish(gira45graus)
-                    rospy.sleep(1)
+                    velocidade_saida.publish(gira90graus)
+                    rospy.sleep(0.7)
                     velocidade_saida.publish(andaBifurcacao)
                     rospy.sleep(3)
                     area_aruco_200 = 0
