@@ -9,7 +9,7 @@ import tf
 import math
 import cv2
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import Image, CompressedImage, LaserScan
 from cv_bridge import CvBridge, CvBridgeError
 from numpy import linalg
 from tf import transformations
@@ -33,11 +33,14 @@ cv_image = None
 media = []
 centro = []
 atraso = 1.5E9 # 1 segundo e meio. Em nanossegundos
-centro_list = [0,0]
+centro_pista = [0,0]
+centro_ciano = [0,0]
+centro_verde = [0,0]
+centro_laranja = [0,0]
 posicao_geral = [0,0]
 posicao_aruco_100 = [0,0]
 posicao_aruco_200 = [0,0]
-
+distancia = 0
 area = 0.0 # Variavel com a area do maior contorno
 area_aruco_50 = 0.0
 area_aruco_100 = 0.0
@@ -69,6 +72,20 @@ tfl = 0
 
 tf_buffer = tf2_ros.Buffer()
 
+viuCreeper = False
+creeperLaranja = False
+creeperCiano = False
+creeperVerde = False
+
+#cor = 'blue'
+cor = 'green'
+#cor = 'orange'
+
+def scaneou(dado):
+    global distancia
+    ranges = np.array(dado.ranges).round(decimals=2)
+    distancia = ranges[0]
+
 def recebe_odometria(data):
     global x
     global y
@@ -81,7 +98,7 @@ def recebe_odometria(data):
     posicao_geral = [x, y]
 
 def filtra_amarelo(img_in):
-    global centro_list
+    global centro_pista
     img = img_in.copy()
     
     #Filtra amarelo
@@ -92,12 +109,100 @@ def filtra_amarelo(img_in):
     mask = cv2.inRange(hsv, hvs1, hsv2)
 
     #Calcula centro de massa
-    M = cv2.moments(mask)
-    cX = int(M["m10"] / M["m00"])
-    cY = int(M["m01"] / M["m00"])
-    centro_list = []
-    centro_list.append(int(cX))
-    centro_list.append(int(cY))
+    try:
+        M = cv2.moments(mask)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        centro_pista = []
+        centro_pista.append(int(cX))
+        centro_pista.append(int(cY))
+        viuCreeper = False
+    except:
+        pass
+
+def filtra_verde(img_in):
+    global creeperVerde
+    global centro_verde
+    global viuCreeper
+    img = img_in.copy()
+    
+    #Filtra verde
+    hvs1 = np.array([45, 50, 50],dtype=np.uint8)
+    hsv2 = np.array([80, 255, 255],dtype=np.uint8)
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, hvs1, hsv2)
+
+    #Calcula centro de massa
+    try:
+        M = cv2.moments(mask)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        centro_verde = []
+        centro_verde.append(int(cX))
+        centro_verde.append(int(cY))
+        creeperVerde = True
+        viuCreeper = True
+    except:
+        creeperVerde = False
+        viuCreeper = False
+
+def filtra_laranja(img_in):
+    global creeperLaranja
+    global centro_laranja
+    global viuCreeper
+    img = img_in.copy()
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    
+    cor_menor = np.array([0, 50, 50],dtype=np.uint8)
+    cor_maior = np.array([35, 255, 255],dtype=np.uint8)
+    mask = cv2.inRange(hsv, cor_menor, cor_maior)
+
+    cor_menor = np.array([174, 50, 100])
+    cor_maior = np.array([180, 255, 255])
+    mask += cv2.inRange(hsv, cor_menor, cor_maior)
+
+    #Calcula centro de massa
+    try:
+        M = cv2.moments(mask)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        centro_laranja = []
+        centro_laranja.append(int(cX))
+        centro_laranja.append(int(cY))
+        creeperLaranja = True
+        viuCreeper = True
+    except:
+        creeperLaranja = False
+        viuCreeper = False
+
+def filtra_ciano(img_in):
+    global creeperCiano
+    global centro_ciano
+    global viuCreeper
+    img = img_in.copy()
+    
+    #Filtra ciano
+    hvs1 = np.array([80, 50, 50],dtype=np.uint8)
+    hsv2 = np.array([115, 255, 255],dtype=np.uint8)
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, hvs1, hsv2)
+
+    #Calcula centro de massa
+    try:
+        M = cv2.moments(mask)
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        centro_ciano = []
+        centro_ciano.append(int(cX))
+        centro_ciano.append(int(cY))
+        viuCreeper = True
+        creeperCiano = True
+    except:
+        viuCreeper = False
+        creeperCiano = False
 
 #A função a seguir é chamada sempre que chega um novo frame
 def roda_todo_frame(imagem):
@@ -133,6 +238,24 @@ def roda_todo_frame(imagem):
         cv_image = saida_net.copy()
         cv2.imshow("cv_image", cv_image)
         filtra_amarelo(cv_image)
+        
+        if not viuCreeper:            
+            if cor == 'green':
+                filtra_verde(cv_image)
+            if cor == 'orange':
+                filtra_laranja(cv_image)
+            if cor == 'blue':
+                filtra_ciano(cv_image)
+        
+        if creeperLaranja:
+            filtra_laranja(cv_image)
+        
+        if creeperVerde:
+            filtra_verde(cv_image)
+                    
+        if creeperCiano:
+            filtra_ciano(cv_image)
+
         gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
         corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
         try:
@@ -167,6 +290,7 @@ if __name__=="__main__":
     topico_imagem = "/camera/image/compressed"
 
     recebedor = rospy.Subscriber(topico_imagem, CompressedImage, roda_todo_frame, queue_size=4, buff_size = 2**24)
+    recebe_scan = rospy.Subscriber("/scan", LaserScan, scaneou)    
     ref_odometria = rospy.Subscriber("/odom", Odometry, recebe_odometria)
 
     print("Usando ", topico_imagem)
@@ -191,9 +315,12 @@ if __name__=="__main__":
 
     #Flags
     anda = True
-    pistaInteira = True
+    pistaInteira = False
     passou_aruco_100 = False
     passou_aruco_200 = False
+    pegaCreeper = True
+    andaPista = True
+    
 
     try:
         while not rospy.is_shutdown():
@@ -254,18 +381,78 @@ if __name__=="__main__":
                     area_aruco_200 = 0
                     passou_aruco_200 = True
         
-            if anda:
-                if centro_list[0] <  centro_tela - margem_tela: 
-                    velocidade_saida.publish(esq)
-                    rospy.sleep(0.001)
+                if anda:
+                    if centro_pista[0] <  centro_tela - margem_tela: 
+                        velocidade_saida.publish(esq)
+                        rospy.sleep(0.001)
 
-                elif centro_list[0] >  centro_tela + margem_tela: 
-                    velocidade_saida.publish(dire)
-                    rospy.sleep(0.001)
-                else: 
-                    velocidade_saida.publish(frente)
-                    rospy.sleep(0.001)
- 
+                    elif centro_pista[0] >  centro_tela + margem_tela: 
+                        velocidade_saida.publish(dire)
+                        rospy.sleep(0.001)
+                    else: 
+                        velocidade_saida.publish(frente)
+                        rospy.sleep(0.001)
+            
+            if pegaCreeper:
 
+                if andaPista:
+                    if centro_pista[0] <  centro_tela - margem_tela: 
+                        velocidade_saida.publish(esq)
+                        rospy.sleep(0.0001)
+
+                    elif centro_pista[0] >  centro_tela + margem_tela: 
+                        velocidade_saida.publish(dire)
+                        rospy.sleep(0.0001)
+                    else: 
+                        velocidade_saida.publish(frente)
+                        rospy.sleep(0.0001)
+                
+                if viuCreeper:
+                    andaPista = False
+                   
+                    if creeperCiano:
+                        if centro_ciano[0] <  centro_tela - margem_tela: 
+                            velocidade_saida.publish(esq)
+                            rospy.sleep(0.0001)
+
+                        elif centro_ciano[0] >  centro_tela + margem_tela: 
+                            velocidade_saida.publish(dire)
+                            rospy.sleep(0.0001)
+                        else: 
+                            velocidade_saida.publish(frente)
+                            rospy.sleep(0.0001)
+                    
+                    if creeperVerde:
+                        if centro_verde[0] <  centro_tela - margem_tela: 
+                            velocidade_saida.publish(esq)
+                            rospy.sleep(0.0001)
+
+                        elif centro_verde[0] >  centro_tela + margem_tela: 
+                            velocidade_saida.publish(dire)
+                            rospy.sleep(0.0001)
+                        else: 
+                            velocidade_saida.publish(frente)
+                            rospy.sleep(0.0001)
+
+                    if creeperLaranja:
+                        if centro_laranja[0] <  centro_tela - margem_tela: 
+                            velocidade_saida.publish(esq)
+                            rospy.sleep(0.0001)
+
+                        elif centro_laranja[0] >  centro_tela + margem_tela: 
+                            velocidade_saida.publish(dire)
+                            rospy.sleep(0.0001)
+                        else: 
+                            velocidade_saida.publish(frente)
+                            rospy.sleep(0.0001)
+                    
+                if distancia < 0.23:
+                    print("primeiro")
+                    if distancia != 0.0:
+                        print('oi')
+                        velocidade_saida.publish(gira180graus)
+                        rospy.sleep(1)
+                        pegaCreeper = False
+                        pistaInteira = True
     except rospy.ROSInterruptException:
         print("Ocorreu uma exceção com o rospy")
