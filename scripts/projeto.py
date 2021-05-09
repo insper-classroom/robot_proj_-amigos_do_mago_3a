@@ -46,6 +46,9 @@ area_aruco_50 = 0.0
 area_aruco_100 = 0.0
 area_aruco_150 = 0.0
 area_aruco_200 = 0.0
+maior_area_laranja = 0.0
+maior_area_ciano = 0.0
+maior_area_verde = 0.0
 
 aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters  = aruco.DetectorParameters_create()
@@ -77,9 +80,9 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-#cor = 'blue'
-cor = 'green'
-#cor = 'orange'
+#cor = "blue" 
+#cor = "green"
+cor = "orange"
 
 def scaneou(dado):
     global distancia
@@ -124,6 +127,7 @@ def filtra_verde(img_in):
     global creeperVerde
     global centro_verde
     global viuCreeper
+    global maior_area_verde
     img = img_in.copy()
     
     #Filtra verde
@@ -132,17 +136,23 @@ def filtra_verde(img_in):
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, hvs1, hsv2)
-
+    contornos, arvore = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+    maior_area_verde = 0.0
+    for c in contornos:
+        area = cv2.contourArea(c)
+        if area > maior_area_verde:
+            maior_area_verde = area
     #Calcula centro de massa
     try:
-        M = cv2.moments(mask)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        centro_verde = []
-        centro_verde.append(int(cX))
-        centro_verde.append(int(cY))
-        creeperVerde = True
-        viuCreeper = True
+        if maior_area_verde > 1900.0:    
+            M = cv2.moments(mask)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            centro_verde = []
+            centro_verde.append(int(cX))
+            centro_verde.append(int(cY))
+            creeperVerde = True
+            viuCreeper = True
     except:
         creeperVerde = False
         viuCreeper = False
@@ -151,28 +161,37 @@ def filtra_laranja(img_in):
     global creeperLaranja
     global centro_laranja
     global viuCreeper
+    global maior_area_laranja
     img = img_in.copy()
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
-    cor_menor = np.array([0, 50, 50],dtype=np.uint8)
-    cor_maior = np.array([35, 255, 255],dtype=np.uint8)
-    mask = cv2.inRange(hsv, cor_menor, cor_maior)
+    #Filtra laranja
+    hvs1 = np.array([0, 50, 150],dtype=np.uint8)
+    hsv2 = np.array([6, 255, 255],dtype=np.uint8)
 
-    cor_menor = np.array([174, 50, 100])
-    cor_maior = np.array([180, 255, 255])
-    mask += cv2.inRange(hsv, cor_menor, cor_maior)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, hvs1, hsv2)
 
-    #Calcula centro de massa
+    contornos, arvore = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+    maior_area_laranja = 0.0
+    for c in contornos:
+        area = cv2.contourArea(c)
+        if area > maior_area_laranja:
+            maior_area_laranja = area
+
+    #Calcula centro de massa and 
     try:
-        M = cv2.moments(mask)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        centro_laranja = []
-        centro_laranja.append(int(cX))
-        centro_laranja.append(int(cY))
-        creeperLaranja = True
-        viuCreeper = True
+        if maior_area_laranja > 1900.0:
+            M = cv2.moments(mask)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            centro_laranja = []
+            centro_laranja.append(int(cX))
+            centro_laranja.append(int(cY))
+            creeperLaranja = True
+            viuCreeper = True
+            cv2.imshow("vermelho", mask)
     except:
         creeperLaranja = False
         viuCreeper = False
@@ -181,6 +200,7 @@ def filtra_ciano(img_in):
     global creeperCiano
     global centro_ciano
     global viuCreeper
+    global maior_area_ciano
     img = img_in.copy()
     
     #Filtra ciano
@@ -190,16 +210,23 @@ def filtra_ciano(img_in):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, hvs1, hsv2)
 
+    contornos, arvore = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) 
+    maior_area_ciano = 0.0
+    for c in contornos:
+        area = cv2.contourArea(c)
+        if area > maior_area_ciano:
+            maior_area_ciano = area   
     #Calcula centro de massa
     try:
-        M = cv2.moments(mask)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        centro_ciano = []
-        centro_ciano.append(int(cX))
-        centro_ciano.append(int(cY))
-        viuCreeper = True
-        creeperCiano = True
+        if maior_area_ciano > 1900.0:    
+            M = cv2.moments(mask)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            centro_ciano = []
+            centro_ciano.append(int(cX))
+            centro_ciano.append(int(cY))
+            viuCreeper = True
+            creeperCiano = True
     except:
         viuCreeper = False
         creeperCiano = False
@@ -218,7 +245,7 @@ def roda_todo_frame(imagem):
     delay = lag.nsecs
     # print("delay ", "{:.3f}".format(delay/1.0E9))
     if delay > atraso and check_delay==True:
-        # Esta logica do delay so' precisa ser usada com robo real e rede wifi 
+        # Esta logica do delay so" precisa ser usada com robo real e rede wifi 
         # serve para descartar imagens antigas
         print("Descartando por causa do delay do frame:", delay)
         return 
@@ -240,11 +267,11 @@ def roda_todo_frame(imagem):
         filtra_amarelo(cv_image)
         
         if not viuCreeper:            
-            if cor == 'green':
+            if cor == "green":
                 filtra_verde(cv_image)
-            if cor == 'orange':
+            if cor == "orange":
                 filtra_laranja(cv_image)
-            if cor == 'blue':
+            if cor == "blue":
                 filtra_ciano(cv_image)
         
         if creeperLaranja:
@@ -282,7 +309,7 @@ def roda_todo_frame(imagem):
             pass
         cv2.waitKey(1)
     except CvBridgeError as e:
-        print('ex', e)
+        print("ex", e)
     
 if __name__=="__main__":
     rospy.init_node("cor")
@@ -315,17 +342,17 @@ if __name__=="__main__":
 
     #Flags
     anda = True
-    pistaInteira = False
+    pistaInteira = True 
     passou_aruco_100 = False
     passou_aruco_200 = False
     pegaCreeper = True
-    andaPista = True
     
 
     try:
         while not rospy.is_shutdown():
             #for r in resultados:
                 #print(r)
+            print(viuCreeper,maior_area_laranja)
             if pistaInteira:
                 if passou_aruco_100:
                     if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
@@ -339,9 +366,9 @@ if __name__=="__main__":
 
                 if passou_aruco_200:
                     if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
-                        print('primeiroif')
+                        print("primeiroif")
                         if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):  
-                            print('segundoif') 
+                            print("segundoif") 
                             velocidade_saida.publish(zero)
                             rospy.sleep(2)
                             velocidade_saida.publish(gira45graus)
@@ -394,21 +421,8 @@ if __name__=="__main__":
                         rospy.sleep(0.001)
             
             if pegaCreeper:
-
-                if andaPista:
-                    if centro_pista[0] <  centro_tela - margem_tela: 
-                        velocidade_saida.publish(esq)
-                        rospy.sleep(0.0001)
-
-                    elif centro_pista[0] >  centro_tela + margem_tela: 
-                        velocidade_saida.publish(dire)
-                        rospy.sleep(0.0001)
-                    else: 
-                        velocidade_saida.publish(frente)
-                        rospy.sleep(0.0001)
-                
                 if viuCreeper:
-                    andaPista = False
+                    pistaInteira = False
                    
                     if creeperCiano:
                         if centro_ciano[0] <  centro_tela - margem_tela: 
@@ -447,9 +461,8 @@ if __name__=="__main__":
                             rospy.sleep(0.0001)
                     
                 if distancia < 0.23:
-                    print("primeiro")
                     if distancia != 0.0:
-                        print('oi')
+                        print("oi")
                         velocidade_saida.publish(gira180graus)
                         rospy.sleep(1)
                         pegaCreeper = False
