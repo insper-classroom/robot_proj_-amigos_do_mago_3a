@@ -81,8 +81,8 @@ creeperCiano = False
 creeperVerde = False
 
 #cor = "blue" 
-cor = "green"
-#cor = "orange"
+#cor = "green"
+cor = "orange"
 
 def scaneou(dado):
     global distancia
@@ -144,7 +144,7 @@ def filtra_verde(img_in):
             maior_area_verde = area
     #Calcula centro de massa
     try:
-        if maior_area_verde > 1500.0:    
+        if maior_area_verde > 1000.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -345,7 +345,7 @@ if __name__=="__main__":
     pistaInteira = True 
     passou_aruco_100 = False
     passou_aruco_200 = False
-    pegaCreeper = True#False 
+    pegaCreeper = True 
     
 
     try:
