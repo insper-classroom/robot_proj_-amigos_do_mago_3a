@@ -191,7 +191,7 @@ def filtra_laranja(img_in):
             centro_laranja.append(int(cY))
             creeperLaranja = True
             viuCreeper = True
-            cv2.imshow("vermelho", mask)
+            #cv2.imshow("vermelho", mask)
     except:
         creeperLaranja = False
         viuCreeper = False
@@ -334,7 +334,7 @@ if __name__=="__main__":
     andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,-0.05))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
     gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
-    gira90graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi/2))
+    gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,70*math.pi/180))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
     centro_tela  = 320
@@ -345,7 +345,7 @@ if __name__=="__main__":
     pistaInteira = True 
     passou_aruco_100 = False
     passou_aruco_200 = False
-    pegaCreeper = True 
+    pegaCreeper = False 
     
 
     try:
@@ -400,7 +400,7 @@ if __name__=="__main__":
                     velocidade_saida.publish(frente)
                     rospy.sleep(2)
                     posicao_aruco_200 = posicao_geral
-                    velocidade_saida.publish(gira90graus)
+                    velocidade_saida.publish(gira70graus)
                     rospy.sleep(0.7)
                     velocidade_saida.publish(andaBifurcacao)
                     rospy.sleep(3)
