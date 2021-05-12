@@ -80,9 +80,11 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-#cor = "blue" 
-#cor = "green"
-cor = "orange"
+lista = ('blue', 11, 'cat')
+
+cor = lista[0]
+id_aruco = lista[1]
+estacao = lista[2]
 
 def scaneou(dado):
     global distancia
