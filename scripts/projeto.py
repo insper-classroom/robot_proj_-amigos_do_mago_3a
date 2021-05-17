@@ -80,7 +80,7 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-lista = ('blue', 11, 'cat')
+lista = ('blue', 12, 'car')
 
 cor = lista[0]
 id_aruco = lista[1]
@@ -267,15 +267,27 @@ def roda_todo_frame(imagem):
         cv_image = saida_net.copy()
         cv2.imshow("cv_image", cv_image)
         filtra_amarelo(cv_image)
-        
-        if not viuCreeper:            
-            if cor == "green":
-                filtra_verde(cv_image)
-            if cor == "orange":
-                filtra_laranja(cv_image)
-            if cor == "blue":
-                filtra_ciano(cv_image)
-        
+
+        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        try:
+            if not viuCreeper:            
+                if cor == "green":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            filtra_verde(cv_image)
+                if cor == "orange":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            filtra_laranja(cv_image)
+                if cor == "blue":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            print('oi')
+                            filtra_ciano(cv_image)
+        except:
+            pass
+
         if creeperLaranja:
             filtra_laranja(cv_image)
         
@@ -285,8 +297,6 @@ def roda_todo_frame(imagem):
         if creeperCiano:
             filtra_ciano(cv_image)
 
-        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
         try:
             for i in range(len(ids)):
                 if ids[i][0] == 50:
@@ -347,7 +357,7 @@ if __name__=="__main__":
     pistaInteira = True 
     passou_aruco_100 = False
     passou_aruco_200 = False
-    pegaCreeper = False 
+    pegaCreeper = True 
     
 
     try:
