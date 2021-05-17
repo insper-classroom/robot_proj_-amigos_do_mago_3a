@@ -20,6 +20,7 @@ import cv2.aruco as aruco
 
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
+from std_msgs.msg import Float64
 
 print("EXECUTE ANTES da 1.a vez: ")
 print("wget https://github.com/Insper/robot21.1/raw/main/projeto/ros_projeto/scripts/MobileNetSSD_deploy.caffemodel")
@@ -80,7 +81,7 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-lista = ('blue', 12, 'car')
+lista = ('green', 23, 'car')
 
 cor = lista[0]
 id_aruco = lista[1]
@@ -146,7 +147,7 @@ def filtra_verde(img_in):
             maior_area_verde = area
     #Calcula centro de massa
     try:
-        if maior_area_verde > 1000.0:    
+        if maior_area_verde > 500.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -184,7 +185,7 @@ def filtra_laranja(img_in):
 
     #Calcula centro de massa and 
     try:
-        if maior_area_laranja > 1900.0:
+        if maior_area_laranja > 1000.0:
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -220,7 +221,7 @@ def filtra_ciano(img_in):
             maior_area_ciano = area   
     #Calcula centro de massa
     try:
-        if maior_area_ciano > 1900.0:    
+        if maior_area_ciano > 800.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -283,7 +284,7 @@ def roda_todo_frame(imagem):
                 if cor == "blue":
                     for i in range(len(ids)):
                         if ids[i][0] == id_aruco:
-                            print('oi')
+                            
                             filtra_ciano(cv_image)
         except:
             pass
@@ -325,6 +326,7 @@ def roda_todo_frame(imagem):
     
 if __name__=="__main__":
     rospy.init_node("cor")
+    #rospy.init_node("garra")
 
     topico_imagem = "/camera/image/compressed"
 
@@ -335,6 +337,10 @@ if __name__=="__main__":
     print("Usando ", topico_imagem)
 
     velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
+    
+    ombro = rospy.Publisher("/joint1_position_controller/command", Float64, queue_size=1)
+    garra = rospy.Publisher("/joint2_position_controller/command", Float64, queue_size=1)
+
 
     tfl = tf2_ros.TransformListener(tf_buffer) #conversao do sistema de coordenadas 
     tolerancia = 25
@@ -364,6 +370,8 @@ if __name__=="__main__":
         while not rospy.is_shutdown():
             #for r in resultados:
                 #print(r)
+            ombro.publish(-2.0) 
+            garra.publish(0.0) 
             if pistaInteira:
                 if passou_aruco_100:
                     if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
@@ -436,6 +444,8 @@ if __name__=="__main__":
                     pistaInteira = False
                    
                     if creeperCiano:
+                        ombro.publish(-0.6) ## para cima
+                        garra.publish(-1.0) ## Aberto
                         if centro_ciano[0] <  centro_tela - margem_tela: 
                             velocidade_saida.publish(esq)
                             rospy.sleep(0.0001)
@@ -448,6 +458,8 @@ if __name__=="__main__":
                             rospy.sleep(0.0001)
                     
                     if creeperVerde:
+                        ombro.publish(-0.6) ## para cima
+                        garra.publish(-1.0) ## Aberto
                         if centro_verde[0] <  centro_tela - margem_tela: 
                             velocidade_saida.publish(esq)
                             rospy.sleep(0.0001)
@@ -460,6 +472,8 @@ if __name__=="__main__":
                             rospy.sleep(0.0001)
 
                     if creeperLaranja:
+                        ombro.publish(-0.6) ## para cima
+                        garra.publish(-1.0) ## Aberto
                         if centro_laranja[0] <  centro_tela - margem_tela: 
                             velocidade_saida.publish(esq)
                             rospy.sleep(0.0001)
@@ -473,6 +487,7 @@ if __name__=="__main__":
                     
                 if distancia < 0.23:
                     if distancia != 0.0:
+                        garra.publish(0.0)  ## Fechado
                         print("oi")
                         velocidade_saida.publish(gira180graus)
                         rospy.sleep(1)
