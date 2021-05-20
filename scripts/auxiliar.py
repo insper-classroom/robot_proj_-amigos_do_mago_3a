@@ -38,6 +38,7 @@ centro_pista = [0,0]
 centro_ciano = [0,0]
 centro_verde = [0,0]
 centro_laranja = [0,0]
+centro_creeper = [0,0]
 posicao_geral = [0,0]
 posicao_aruco_100 = [math.inf, math.inf]
 posicao_aruco_200 = [math.inf, math.inf]
@@ -81,7 +82,7 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-lista = ('green', 23, 'car')
+lista = ('green', 21, 'car')
 
 cor = lista[0]
 id_aruco = lista[1]
@@ -147,7 +148,7 @@ def filtra_verde(img_in):
             maior_area_verde = area
     #Calcula centro de massa
     try:
-        if maior_area_verde > 500.0:    
+        if maior_area_verde > 400.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -373,12 +374,15 @@ if __name__=="__main__":
 
     INICIAL= -1
     AVANCA = 0
-    ALINHA = 1
+    ALINHAPISTA = 1
     FIM = 2
     BIFURCACAO = 3
     BIFURCACAO2 = 4
     FIMDEPISTA = 5
     BIFURCACAOVOLTA = 6
+    ALINHACREEPER = 7
+    VERIFICADISTANCIA = 8
+    
     
     tempo_aruco_100 = 0
     tempo_aruco_200 = 0
@@ -396,7 +400,7 @@ if __name__=="__main__":
         vel = frente 
         velocidade_saida.publish(vel) 
 
-    def alinha():
+    def alinhapista():
         delta_x = centro_tela - centro_pista[0]
         max_delta = 150.0
         w = (delta_x/max_delta)*w_rapido
@@ -436,22 +440,50 @@ if __name__=="__main__":
         rospy.sleep(1)
         area_aruco_50 = 0
         area_aruco_150 = 0 
+    
+    def alinhacreeper():
+        if creeperCiano:
+            centro_creeper = centro_ciano
+        if creeperLaranja:
+            centro_creeper = centro_laranja
+        if creeperVerde:
+            centro_creeper = centro_verde
+        ombro.publish(-0.6) ## para cima
+        garra.publish(-1.0) ## Aberto
+        delta_x = centro_tela - centro_creeper[0]
+        max_delta = 150.0
+        w = (delta_x/max_delta)*w_rapido
+        vel = Twist(Vector3(v_lento,0,0), Vector3(0,0,w)) 
+        velocidade_saida.publish(vel)  
+
+    def verificadistancia():
+        global pegaCreeper
+        global pistaInteira
+        garra.publish(0.0)  ## Fechado
+        velocidade_saida.publish(gira180graus)
+        rospy.sleep(1)
+        pegaCreeper = False
+        pistaInteira = True 
+
    
     def controle():
         global state
         global posicao_aruco_100, posicao_aruco_200    
         global area_aruco_100, area_aruco_200, area_aruco_50, area_aruco_150
         global tempo_aruco_100, tempo_aruco_200
+        global pistaInteira
+        
 
-        if centro_tela - margem_tela < centro_pista[0] < centro_tela + margem_tela:
-            state = AVANCA
-        else:
-            state = ALINHA
+        if pistaInteira:
+            if centro_tela - margem_tela < centro_pista[0] < centro_tela + margem_tela:
+                state = AVANCA
+            else:
+                state = ALINHAPISTA
 
         if area_aruco_50 > 26000 or area_aruco_150 > 26000:
             state = FIMDEPISTA
 
-        if area_aruco_100 > 15000:
+        if area_aruco_100 > 14000:
             posicao_aruco_100 = posicao_geral
             tempo_aruco_100 = rospy.Time.now()
             state = BIFURCACAO
@@ -470,14 +502,26 @@ if __name__=="__main__":
         if rospy.Time.now() - tempo_aruco_200 >= rospy.Duration.from_sec(5.0):
             if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
                 if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):
-                    state = BIFURCACAOVOLTA                    
+                    state = BIFURCACAOVOLTA    
 
-    acoes = {INICIAL:inicial, AVANCA: avanca, ALINHA: alinha, FIM:fim, BIFURCACAO: bifurcacao, BIFURCACAO2: bifurcacao2, FIMDEPISTA:fimdepista, BIFURCACAOVOLTA:bifurcacaovolta}
+        if pegaCreeper:
+            if viuCreeper:
+                pistaInteira = False
+                if centro_tela - margem_tela < centro_creeper[0] < centro_tela + margem_tela:
+                    state = AVANCA
+                else:
+                    state = ALINHACREEPER            
+                if distancia < 0.22:
+                    if distancia != 0.0:
+                        state = VERIFICADISTANCIA
+    acoes = {INICIAL:inicial, AVANCA: avanca, ALINHAPISTA: alinhapista, FIM:fim, BIFURCACAO: bifurcacao, BIFURCACAO2: bifurcacao2, FIMDEPISTA:fimdepista, BIFURCACAOVOLTA:bifurcacaovolta, ALINHACREEPER:alinhacreeper, VERIFICADISTANCIA:verificadistancia}
     r = rospy.Rate(100)
 
     try:
         while not rospy.is_shutdown():
-            print("Estado: ", state)
+            #print("Estado: ", state)
+            print(viuCreeper)
+            print(maior_area_verde)
             acoes[state]()  # executa a funcão que está no dicionário
             controle()            
             r.sleep()
