@@ -349,7 +349,7 @@ if __name__=="__main__":
     v_rapido = 0.45
     w_lento = 0.17
     w_rapido = 0.40
-    
+
     zero = Twist(Vector3(0,0,0), Vector3(0,0,0))
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
     dire = Twist(Vector3(0.1,0,0), Vector3(0,0,-0.2))    
@@ -380,16 +380,14 @@ if __name__=="__main__":
     FIMDEPISTA = 5
     BIFURCACAOVOLTA = 6
     
-    start_time = 0
     tempo_aruco_100 = 0
     tempo_aruco_200 = 0
 
     state = INICIAL
 
     def inicial():
-        global start_time, tempo_aruco_100, tempo_aruco_200
+        global tempo_aruco_100, tempo_aruco_200
         # Ainda sem uma ação específica
-        start_time = rospy.Time.now()
         tempo_aruco_100 = rospy.Time.now()
         tempo_aruco_200 = rospy.Time.now()
         pass
@@ -416,14 +414,6 @@ if __name__=="__main__":
         rospy.sleep(1)
         area_aruco_100 = 0 
 
-    def fimdepista():
-        global area_aruco_50, area_aruco_150
-        vel = gira180graus
-        velocidade_saida.publish(vel)
-        rospy.sleep(1)
-        area_aruco_50 = 0
-        area_aruco_150 = 0 
-
     def bifurcacao2():
         global area_aruco_200
         vel = gira70graus
@@ -438,7 +428,15 @@ if __name__=="__main__":
         rospy.sleep(1)
         posicao_aruco_100 = [math.inf, math.inf]
         posicao_aruco_200 = [math.inf, math.inf]
-
+   
+    def fimdepista():
+        global area_aruco_50, area_aruco_150
+        vel = gira180graus
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_50 = 0
+        area_aruco_150 = 0 
+   
     def controle():
         global state
         global posicao_aruco_100, posicao_aruco_200    
@@ -466,8 +464,7 @@ if __name__=="__main__":
         if rospy.Time.now() - tempo_aruco_100 >= rospy.Duration.from_sec(5.0):
             if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
                 if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):
-                    if rospy.Time.now() - start_time >= rospy.Duration.from_sec(5.0):
-                        state = BIFURCACAOVOLTA
+                    state = BIFURCACAOVOLTA
 
 
         if rospy.Time.now() - tempo_aruco_200 >= rospy.Duration.from_sec(5.0):
