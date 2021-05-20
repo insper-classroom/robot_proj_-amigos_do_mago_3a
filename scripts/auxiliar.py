@@ -39,8 +39,8 @@ centro_ciano = [0,0]
 centro_verde = [0,0]
 centro_laranja = [0,0]
 posicao_geral = [0,0]
-posicao_aruco_100 = [0,0]
-posicao_aruco_200 = [0,0]
+posicao_aruco_100 = [math.inf, math.inf]
+posicao_aruco_200 = [math.inf, math.inf]
 distancia = 0
 area = 0.0 # Variavel com a area do maior contorno
 area_aruco_50 = 0.0
@@ -344,7 +344,12 @@ if __name__=="__main__":
 
     tfl = tf2_ros.TransformListener(tf_buffer) #conversao do sistema de coordenadas 
     tolerancia = 25
-
+    
+    v_lento = 0.2
+    v_rapido = 0.45
+    w_lento = 0.17
+    w_rapido = 0.40
+    
     zero = Twist(Vector3(0,0,0), Vector3(0,0,0))
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
     dire = Twist(Vector3(0.1,0,0), Vector3(0,0,-0.2))    
@@ -364,11 +369,7 @@ if __name__=="__main__":
     passou_aruco_100 = False
     passou_aruco_200 = False
     pegaCreeper = True 
-    
-    v_lento = 0.2
-    v_rapido = 0.45
-    w_lento = 0.17
-    w_rapido = 0.40
+
 
     INICIAL= -1
     AVANCA = 0
@@ -377,10 +378,20 @@ if __name__=="__main__":
     BIFURCACAO = 3
     BIFURCACAO2 = 4
     FIMDEPISTA = 5
+    BIFURCACAOVOLTA = 6
+    
+    start_time = 0
+    tempo_aruco_100 = 0
+    tempo_aruco_200 = 0
 
     state = INICIAL
+
     def inicial():
+        global start_time, tempo_aruco_100, tempo_aruco_200
         # Ainda sem uma ação específica
+        start_time = rospy.Time.now()
+        tempo_aruco_100 = rospy.Time.now()
+        tempo_aruco_200 = rospy.Time.now()
         pass
 
     def avanca():
@@ -399,58 +410,77 @@ if __name__=="__main__":
         velocidade_saida.publish(vel)
 
     def bifurcacao():
-        vel = gira30graus
+        global area_aruco_100
+        vel = gira30graus        
         velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_100 = 0 
 
     def fimdepista():
+        global area_aruco_50, area_aruco_150
         vel = gira180graus
         velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_50 = 0
+        area_aruco_150 = 0 
 
     def bifurcacao2():
+        global area_aruco_200
         vel = gira70graus
         velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_200 = 0 
+
+    def bifurcacaovolta():
+        global posicao_aruco_100, posicao_aruco_200
+        vel = gira30graus        
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        posicao_aruco_100 = [math.inf, math.inf]
+        posicao_aruco_200 = [math.inf, math.inf]
 
     def controle():
         global state
-        global posicao_aruco_100    
-        global posicao_aruco_200  
-        global area_aruco_100
-        global area_aruco_200
-        global area_aruco_50
-        global area_aruco_150
+        global posicao_aruco_100, posicao_aruco_200    
+        global area_aruco_100, area_aruco_200, area_aruco_50, area_aruco_150
+        global tempo_aruco_100, tempo_aruco_200
 
         if centro_tela - margem_tela < centro_pista[0] < centro_tela + margem_tela:
-            print("avanca")
             state = AVANCA
         else:
             state = ALINHA
 
-        #if area_aruco_50 > 26000 or area_aruco_150 > 26000:
-        #    state = FIMDEPISTA
-#
-        #if area_aruco_100 > 15000:
-        #    posicao_aruco_100 = posicao_geral
-        #    state = BIFURCACAO 
-#
-        #if area_aruco_200 > 15500:
-        #    posicao_aruco_200 = posicao_geral
-        #    state = BIFURCACAO2
-#
-        #if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
-        #    if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):
-        #        state = BIFURCACAO
-#
-        #if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
-        #    if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):  
-        #        state = BIFURCACAO                    
+        if area_aruco_50 > 26000 or area_aruco_150 > 26000:
+            state = FIMDEPISTA
 
-    acoes = {INICIAL:inicial, AVANCA: avanca, ALINHA: alinha, FIM:fim, BIFURCACAO: bifurcacao, BIFURCACAO2: bifurcacao2, FIMDEPISTA:fimdepista}
+        if area_aruco_100 > 15000:
+            posicao_aruco_100 = posicao_geral
+            tempo_aruco_100 = rospy.Time.now()
+            state = BIFURCACAO
+
+        if area_aruco_200 > 15500:
+            posicao_aruco_200 = posicao_geral
+            tempo_aruco_200 = rospy.Time.now()
+            state = BIFURCACAO2
+
+        if rospy.Time.now() - tempo_aruco_100 >= rospy.Duration.from_sec(5.0):
+            if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
+                if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):
+                    if rospy.Time.now() - start_time >= rospy.Duration.from_sec(5.0):
+                        state = BIFURCACAOVOLTA
+
+
+        if rospy.Time.now() - tempo_aruco_200 >= rospy.Duration.from_sec(5.0):
+            if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
+                if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):
+                    state = BIFURCACAOVOLTA                    
+
+    acoes = {INICIAL:inicial, AVANCA: avanca, ALINHA: alinha, FIM:fim, BIFURCACAO: bifurcacao, BIFURCACAO2: bifurcacao2, FIMDEPISTA:fimdepista, BIFURCACAOVOLTA:bifurcacaovolta}
     r = rospy.Rate(100)
 
     try:
         while not rospy.is_shutdown():
             print("Estado: ", state)
-            print(area_aruco_100)
             acoes[state]()  # executa a funcão que está no dicionário
             controle()            
             r.sleep()
