@@ -30,6 +30,7 @@ import visao_module
 
 bridge = CvBridge()
 
+'''Variaveis Globais'''
 cv_image = None
 media = []
 centro = []
@@ -52,6 +53,7 @@ maior_area_laranja = 0.0
 maior_area_ciano = 0.0
 maior_area_verde = 0.0
 
+'''Codigos do Aruco'''
 aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters  = aruco.DetectorParameters_create()
 parameters.minDistanceToBorder = 0
@@ -77,11 +79,14 @@ tfl = 0
 
 tf_buffer = tf2_ros.Buffer()
 
+'''Flags'''
 viuCreeper = False
 creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
+
+'''Objetivo'''
 lista = ('orange', 11, 'car')
 
 cor = lista[0]
@@ -101,10 +106,12 @@ def recebe_odometria(data):
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
-    #quat = data.pose.pose.orientation
     posicao_geral = [x, y]
 
 def filtra_amarelo(img_in):
+    '''
+    Filtra o amarelo da pista e registra seu centro de massa
+    '''
     global centro_pista
     img = img_in.copy()
     
@@ -128,6 +135,9 @@ def filtra_amarelo(img_in):
         pass
 
 def filtra_verde(img_in):
+    '''
+    Filtra o verde do creeper e registra seu centro de massa
+    '''
     global creeperVerde
     global centro_verde
     global viuCreeper
@@ -162,6 +172,9 @@ def filtra_verde(img_in):
         viuCreeper = False
 
 def filtra_laranja(img_in):
+    '''
+    Filtra o laranja do creeper e registra seu centro de massa
+    '''
     global creeperLaranja
     global centro_laranja
     global viuCreeper
@@ -201,6 +214,9 @@ def filtra_laranja(img_in):
         viuCreeper = False
 
 def filtra_ciano(img_in):
+    '''
+    Filtra o ciano do creeper e registra seu centro de massa
+    '''
     global creeperCiano
     global centro_ciano
     global viuCreeper
@@ -358,7 +374,7 @@ if __name__=="__main__":
     andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,-0.05))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
     gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
-    gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,-70*math.pi/180))
+    gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,70*math.pi/180))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
     centro_tela  = 320
@@ -381,7 +397,7 @@ if __name__=="__main__":
     FIMDEPISTA = 5
     BIFURCACAOVOLTA = 6
     ALINHACREEPER = 7
-    VERIFICADISTANCIA = 8
+    PEGACREEPER = 8
     
     
     tempo_aruco_100 = 0
@@ -390,17 +406,25 @@ if __name__=="__main__":
     state = INICIAL
 
     def inicial():
+        '''
+        Guarda o tempo de quando o robo passa pelos arucos das bifurcações
+        '''
         global tempo_aruco_100, tempo_aruco_200
-        # Ainda sem uma ação específica
         tempo_aruco_100 = rospy.Time.now()
         tempo_aruco_200 = rospy.Time.now()
         
 
     def avanca():
+        '''
+        Anda pra frente
+        '''
         vel = frente 
         velocidade_saida.publish(vel) 
 
     def alinhapista():
+        '''
+        Alinha o robo na pista
+        '''
         delta_x = centro_tela - centro_pista[0]
         max_delta = 150.0
         w = (delta_x/max_delta)*w_rapido
@@ -408,10 +432,16 @@ if __name__=="__main__":
         velocidade_saida.publish(vel)        
 
     def fim(): 
+        '''
+        Zera a velocidade do robo
+        '''
         vel = zero        
         velocidade_saida.publish(vel)
 
     def bifurcacao():
+        '''
+        Gira 30 graus e zera a area do Aruco quando chega na bifurcação "da perna"
+        '''
         global area_aruco_100
         vel = gira30graus        
         velocidade_saida.publish(vel)
@@ -419,6 +449,9 @@ if __name__=="__main__":
         area_aruco_100 = 0 
 
     def bifurcacao2():
+        '''
+        Gira 70 graus e zera a area do Aruco quando chega na bifurcação "da cabeça"
+        '''
         global area_aruco_200
         vel = gira70graus
         velocidade_saida.publish(vel)
@@ -426,6 +459,9 @@ if __name__=="__main__":
         area_aruco_200 = 0 
 
     def bifurcacaovolta():
+        '''
+        Gira 30 graus quando passa pela segunda vez por uma bifurcação
+        '''
         global posicao_aruco_100, posicao_aruco_200
         vel = gira30graus        
         velocidade_saida.publish(vel)
@@ -434,6 +470,9 @@ if __name__=="__main__":
         posicao_aruco_200 = [math.inf, math.inf]
    
     def fimdepista():
+        '''
+        Gira 180 graus quando chega ao fim de uma das "pernas" da pista
+        '''
         global area_aruco_50, area_aruco_150
         vel = gira180graus
         velocidade_saida.publish(vel)
@@ -442,6 +481,9 @@ if __name__=="__main__":
         area_aruco_150 = 0 
     
     def alinhacreeper():
+        '''
+        Alinha o robo ao creeper definido acima
+        '''
         if creeperCiano:
             centro_creeper = centro_ciano
         if creeperLaranja:
@@ -456,7 +498,10 @@ if __name__=="__main__":
         vel = Twist(Vector3(v_lento,0,0), Vector3(0,0,w)) 
         velocidade_saida.publish(vel)  
 
-    def verificadistancia():
+    def pegacreeper():
+        '''
+        Pega o creeper e volta pra pista
+        '''
         global pegaCreeper
         global pistaInteira
         garra.publish(0.0)  ## Fechado
@@ -467,6 +512,9 @@ if __name__=="__main__":
 
    
     def controle():
+        '''
+        Controla qual estado executar
+        '''
         global state
         global posicao_aruco_100, posicao_aruco_200    
         global area_aruco_100, area_aruco_200, area_aruco_50, area_aruco_150
@@ -513,7 +561,7 @@ if __name__=="__main__":
                     state = ALINHACREEPER            
                 if distancia < 0.22:
                     if distancia != 0.0:
-                        state = VERIFICADISTANCIA
+                        state = pegacreeper
     acoes = {
         INICIAL:inicial, 
         AVANCA: avanca, 
@@ -524,16 +572,14 @@ if __name__=="__main__":
         FIMDEPISTA:fimdepista, 
         BIFURCACAOVOLTA:bifurcacaovolta, 
         ALINHACREEPER:alinhacreeper, 
-        VERIFICADISTANCIA:verificadistancia}
+        PEGACREEPER:pegacreeper}
         
-    r = rospy.Rate(100)
+    r = rospy.Rate(100) 
 
     try:
         while not rospy.is_shutdown():
-            #print("Estado: ", state)
-            print(viuCreeper)
-            print(maior_area_verde)
-            acoes[state]()  # executa a funcão que está no dicionário
+            print("Estado: ", state)
+            acoes[state]()
             controle()            
             r.sleep()
 
