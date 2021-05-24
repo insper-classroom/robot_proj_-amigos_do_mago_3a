@@ -82,7 +82,7 @@ creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-lista = ('green', 21, 'car')
+lista = ('orange', 11, 'car')
 
 cor = lista[0]
 id_aruco = lista[1]
@@ -358,7 +358,7 @@ if __name__=="__main__":
     andaBifurcacao = Twist(Vector3(0.5,0,0), Vector3(0,0,-0.05))
     gira30graus = Twist(Vector3(0.0,0,0), Vector3(0,0,30*math.pi/180))
     gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
-    gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,70*math.pi/180))
+    gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,-70*math.pi/180))
     gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
 
     centro_tela  = 320
@@ -394,7 +394,7 @@ if __name__=="__main__":
         # Ainda sem uma ação específica
         tempo_aruco_100 = rospy.Time.now()
         tempo_aruco_200 = rospy.Time.now()
-        pass
+        
 
     def avanca():
         vel = frente 
@@ -514,7 +514,18 @@ if __name__=="__main__":
                 if distancia < 0.22:
                     if distancia != 0.0:
                         state = VERIFICADISTANCIA
-    acoes = {INICIAL:inicial, AVANCA: avanca, ALINHAPISTA: alinhapista, FIM:fim, BIFURCACAO: bifurcacao, BIFURCACAO2: bifurcacao2, FIMDEPISTA:fimdepista, BIFURCACAOVOLTA:bifurcacaovolta, ALINHACREEPER:alinhacreeper, VERIFICADISTANCIA:verificadistancia}
+    acoes = {
+        INICIAL:inicial, 
+        AVANCA: avanca, 
+        ALINHAPISTA: alinhapista, 
+        FIM:fim,
+        BIFURCACAO: bifurcacao, 
+        BIFURCACAO2: bifurcacao2, 
+        FIMDEPISTA:fimdepista, 
+        BIFURCACAOVOLTA:bifurcacaovolta, 
+        ALINHACREEPER:alinhacreeper, 
+        VERIFICADISTANCIA:verificadistancia}
+        
     r = rospy.Rate(100)
 
     try:
