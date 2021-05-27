@@ -93,11 +93,13 @@ class projeto:
         
 
         '''Objetivo'''
-        self.lista = ('blue', 12, 'car')
+        self.goal = ("blue", 12, "cow")
+        #self.goal = ("green", 23, "horse")
+        #self.goal = ("orange", 11, "cow")
 
-        self.cor = self.lista[0]
-        self.id_aruco = self.lista[1]
-        self.estacao = self.lista[2]
+        self.cor = self.goal[0]
+        self.id_aruco = self.goal[1]
+        self.estacao = self.goal[2]
 
         rospy.init_node("cor")
         #rospy.init_node("garra")
@@ -142,7 +144,9 @@ class projeto:
         self.pistaInteira = True 
         self.passou_aruco_100 = False
         self.passou_aruco_200 = False
-        self.pegaCreeper = False 
+        self.pegaCreeper = True 
+        self.pegouCreeper = False
+        self.viuEstacao = False
     
         self.INICIAL= -1
         self.AVANCA = 0
@@ -154,6 +158,8 @@ class projeto:
         self.BIFURCACAOVOLTA = 6
         self.ALINHACREEPER = 7
         self.PEGACREEPER = 8
+        self.ALINHAESTACAO = 9
+        self.SOLTACREEPER = 10
         
     
         self.tempo_aruco_100 = 0
@@ -171,7 +177,9 @@ class projeto:
             self.FIMDEPISTA: self.fimdepista, 
             self.BIFURCACAOVOLTA: self.bifurcacaovolta, 
             self.ALINHACREEPER: self.alinhacreeper, 
-            self.PEGACREEPER: self.pegacreeper
+            self.PEGACREEPER: self.pegacreeper,
+            self.ALINHAESTACAO: self.alinhaEstacao,
+            self.SOLTACREEPER: self.soltaCreeper
             }
         
         r = rospy.Rate(100)
@@ -346,6 +354,7 @@ class projeto:
         global media
         global centro
         global resultados
+        global viuEstacao
 
         now = rospy.get_rostime()
         imgtime = imagem.header.stamp
@@ -366,7 +375,9 @@ class projeto:
 
             for r in resultados:
                 if r[0] == self.estacao:
-                    pass
+                    if self.pegouCreeper:
+                        if r[1] > 70.0:
+                            self.viuEstacao = True 
 
             # Desnecessário - Hough e MobileNet já abrem janelas
             cv_image = saida_net.copy()
@@ -537,6 +548,7 @@ class projeto:
         '''
         global pegaCreeper
         global pistaInteira
+        global pegouCreeper 
         self.garra.publish(0.0)  ## Fechado
         self.ombro.publish(2.0) ## para cima
         self.velocidade_saida.publish(self.gira180graus)
@@ -545,8 +557,34 @@ class projeto:
             pass
         self.pegaCreeper = False
         self.pistaInteira = True 
+        self.pegouCreeper = True
 
-   
+    def alinhaEstacao(self):
+        global state
+        for r in resultados:
+            mc = 10
+            mx = 100 
+            if r[0] == self.estacao:
+                mx = (r[2][0] + r[3][0])/ 2
+                mx = int(mx)
+            if 320 - mc < mx < 320 + mc:
+                self.state = self.AVANCA
+            elif mx < 320 - mc:
+                self.velocidade_saida.publish(self.esquerda)
+            elif  mx > 320 + mc:
+                self.velocidade_saida.publish(self.direita)
+    
+    def soltaCreeper(self):
+        self.ombro.publish(1.0)
+        self.garra.publish(-1.0) 
+        self.velocidade_saida.publish(self.gira180graus)
+        comeca_girar = rospy.Time.now()
+        while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
+            pass
+        self.pistaInteira = True 
+        self.pegouCreeper = True 
+        pass
+
     def controle(self):
         '''
         Controla qual estado executar
@@ -572,7 +610,7 @@ class projeto:
             self.tempo_aruco_100 = rospy.Time.now()
             self.state = self.BIFURCACAO
 
-        if self.area_aruco_200 > 16500:
+        if self.area_aruco_200 > 19000:
             self.posicao_aruco_200 = self.posicao_geral
             self.tempo_aruco_200 = rospy.Time.now()
             self.state = self.BIFURCACAO2
@@ -598,6 +636,17 @@ class projeto:
                 if self.distancia < 0.22:
                     if self.distancia != 0.0:
                         self.state = self.PEGACREEPER
+        
+        if self.pegouCreeper:
+            print('pegou creeper')
+            if self.viuEstacao:
+                print('viu estacao')
+                self.pistaInteira = False
+                print(self.pistaInteira)
+                self.state = self.ALINHAESTACAO           
+                if self.distancia < 0.40:
+                    if self.distancia != 0.0:
+                        self.state = self.SOLTACREEPER
 
 
 if __name__ == '__main__':
