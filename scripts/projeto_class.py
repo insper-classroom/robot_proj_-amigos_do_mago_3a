@@ -94,9 +94,9 @@ class projeto:
         
 
         '''Objetivo'''
-        self.goal = ("blue", 12, "dog")
+        #self.goal = ("blue", 12, "dog")
         #self.goal = ("green", 23, "horse")
-        #self.goal = ("orange", 11, "cow")
+        self.goal = ("orange", 11, "cow")
 
         self.cor = self.goal[0]
         self.id_aruco = self.goal[1]
@@ -136,6 +136,7 @@ class projeto:
         self.gira45graus = Twist(Vector3(0.0,0,0), Vector3(0,0,45*math.pi/180))
         self.gira50graus = Twist(Vector3(0.0,0,0), Vector3(0,0,-45*math.pi/180))
         self.gira70graus = Twist(Vector3(0.0,0,0), Vector3(0,0,70*math.pi/180))
+        self.gira71graus = Twist(Vector3(0.0,0,0), Vector3(0,0,-71*math.pi/180))
         self.gira180graus = Twist(Vector3(0.0,0,0), Vector3(0,0,math.pi))
     
         self.centro_tela  = 320
@@ -378,7 +379,9 @@ class projeto:
             for r in resultados:
                 if r[0] == self.estacao:
                     if self.pegouCreeper:
-                        if r[1] > 90.0:
+                        if r[0] == 'horse' and r[1] > 55.0:
+                            self.viuEstacao = True 
+                        elif r[1] > 90.0:
                             self.viuEstacao = True 
 
             # Desnecessário - Hough e MobileNet já abrem janelas
@@ -493,7 +496,7 @@ class projeto:
         Gira 70 graus e zera a area do Aruco quando chega na bifurcação "da cabeça"
         '''
         global area_aruco_200
-        self.vel = self.gira70graus
+        self.vel = self.gira71graus
         self.velocidade_saida.publish(self.vel)
         comeca_girar = rospy.Time.now()
         while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
@@ -553,7 +556,10 @@ class projeto:
         global pegouCreeper 
         self.garra.publish(0.0)  ## Fechado
         self.ombro.publish(2.0) ## para cima
-        self.velocidade_saida.publish(self.gira50graus)
+        if self.cor == 'green':
+            self.velocidade_saida.publish(self.gira180graus)
+        else:
+            self.velocidade_saida.publish(self.gira45graus)
         comeca_girar = rospy.Time.now()
         while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
             pass
@@ -566,19 +572,23 @@ class projeto:
         global mx
         for r in resultados:
             mc = 20
-            self.mx = 100 
+            print(self.mx)
             if r[0] == self.estacao:
                 self.mx = (r[2][0] + r[3][0])/ 2
                 self.mx = int(self.mx)
-                print(self.mx)
-            if self.mx < 320 - mc:
-                self.velocidade_saida.publish(self.esq)
-            if  self.mx > 320 + mc: 
-                self.velocidade_saida.publish(self.dire)
+            self.delta_x = self.centro_tela - self.mx
+            self.max_delta = 150.0
+            self.w = (self.delta_x/self.max_delta)*self.w_rapido
+            self.vel = Twist(Vector3(self.v_lento,0,0), Vector3(0,0,self.w)) 
+            self.velocidade_saida.publish(self.vel)  
     
     def soltaCreeper(self):
-        self.ombro.publish(1.0)
+        self.ombro.publish(-1.0)
         self.garra.publish(-1.0) 
+        self.velocidade_saida.publish(self.zero)        
+        comeca_girar = rospy.Time.now()
+        while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(2.0):
+            pass
         self.velocidade_saida.publish(self.gira180graus)
         comeca_girar = rospy.Time.now()
         while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
@@ -646,10 +656,7 @@ class projeto:
             if self.viuEstacao:
                 print('viu estacao')
                 self.pistaInteira = False
-                if 320 - 10 < self.mx < 320 + 10:
-                    self.state = self.AVANCA
-                else:
-                    self.state = self.ALINHAESTACAO           
+                self.state = self.ALINHAESTACAO           
                 if self.distancia < 0.40:
                     if self.distancia != 0.0:
                         self.state = self.SOLTACREEPER
