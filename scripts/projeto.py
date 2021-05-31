@@ -496,7 +496,7 @@ class projeto:
         Gira 70 graus e zera a area do Aruco quando chega na bifurcação "da cabeça"
         '''
         global area_aruco_200
-        self.vel = self.gira71graus
+        self.vel = self.gira70graus
         self.velocidade_saida.publish(self.vel)
         comeca_girar = rospy.Time.now()
         while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
