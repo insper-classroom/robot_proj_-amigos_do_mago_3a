@@ -20,6 +20,7 @@ import cv2.aruco as aruco
 
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
+from std_msgs.msg import Float64
 
 print("EXECUTE ANTES da 1.a vez: ")
 print("wget https://github.com/Insper/robot21.1/raw/main/projeto/ros_projeto/scripts/MobileNetSSD_deploy.caffemodel")
@@ -29,6 +30,7 @@ import visao_module
 
 bridge = CvBridge()
 
+'''Variaveis Globais'''
 cv_image = None
 media = []
 centro = []
@@ -37,9 +39,10 @@ centro_pista = [0,0]
 centro_ciano = [0,0]
 centro_verde = [0,0]
 centro_laranja = [0,0]
+centro_creeper = [0,0]
 posicao_geral = [0,0]
-posicao_aruco_100 = [0,0]
-posicao_aruco_200 = [0,0]
+posicao_aruco_100 = [math.inf, math.inf]
+posicao_aruco_200 = [math.inf, math.inf]
 distancia = 0
 area = 0.0 # Variavel com a area do maior contorno
 area_aruco_50 = 0.0
@@ -50,6 +53,7 @@ maior_area_laranja = 0.0
 maior_area_ciano = 0.0
 maior_area_verde = 0.0
 
+'''Codigos do Aruco'''
 aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters  = aruco.DetectorParameters_create()
 parameters.minDistanceToBorder = 0
@@ -75,12 +79,15 @@ tfl = 0
 
 tf_buffer = tf2_ros.Buffer()
 
+'''Flags'''
 viuCreeper = False
 creeperLaranja = False
 creeperCiano = False
 creeperVerde = False
 
-lista = ('blue', 11, 'cat')
+
+'''Objetivo'''
+lista = ('orange', 11, 'car')
 
 cor = lista[0]
 id_aruco = lista[1]
@@ -99,10 +106,12 @@ def recebe_odometria(data):
     x = data.pose.pose.position.x
     y = data.pose.pose.position.y
 
-    #quat = data.pose.pose.orientation
     posicao_geral = [x, y]
 
 def filtra_amarelo(img_in):
+    '''
+    Filtra o amarelo da pista e registra seu centro de massa
+    '''
     global centro_pista
     img = img_in.copy()
     
@@ -126,6 +135,9 @@ def filtra_amarelo(img_in):
         pass
 
 def filtra_verde(img_in):
+    '''
+    Filtra o verde do creeper e registra seu centro de massa
+    '''
     global creeperVerde
     global centro_verde
     global viuCreeper
@@ -146,7 +158,7 @@ def filtra_verde(img_in):
             maior_area_verde = area
     #Calcula centro de massa
     try:
-        if maior_area_verde > 1000.0:    
+        if maior_area_verde > 400.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -160,6 +172,9 @@ def filtra_verde(img_in):
         viuCreeper = False
 
 def filtra_laranja(img_in):
+    '''
+    Filtra o laranja do creeper e registra seu centro de massa
+    '''
     global creeperLaranja
     global centro_laranja
     global viuCreeper
@@ -184,7 +199,7 @@ def filtra_laranja(img_in):
 
     #Calcula centro de massa and 
     try:
-        if maior_area_laranja > 1900.0:
+        if maior_area_laranja > 1000.0:
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -199,6 +214,9 @@ def filtra_laranja(img_in):
         viuCreeper = False
 
 def filtra_ciano(img_in):
+    '''
+    Filtra o ciano do creeper e registra seu centro de massa
+    '''
     global creeperCiano
     global centro_ciano
     global viuCreeper
@@ -220,7 +238,7 @@ def filtra_ciano(img_in):
             maior_area_ciano = area   
     #Calcula centro de massa
     try:
-        if maior_area_ciano > 1900.0:    
+        if maior_area_ciano > 800.0:    
             M = cv2.moments(mask)
             cX = int(M["m10"] / M["m00"])
             cY = int(M["m01"] / M["m00"])
@@ -267,15 +285,27 @@ def roda_todo_frame(imagem):
         cv_image = saida_net.copy()
         cv2.imshow("cv_image", cv_image)
         filtra_amarelo(cv_image)
-        
-        if not viuCreeper:            
-            if cor == "green":
-                filtra_verde(cv_image)
-            if cor == "orange":
-                filtra_laranja(cv_image)
-            if cor == "blue":
-                filtra_ciano(cv_image)
-        
+
+        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        try:
+            if not viuCreeper:            
+                if cor == "green":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            filtra_verde(cv_image)
+                if cor == "orange":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            filtra_laranja(cv_image)
+                if cor == "blue":
+                    for i in range(len(ids)):
+                        if ids[i][0] == id_aruco:
+                            
+                            filtra_ciano(cv_image)
+        except:
+            pass
+
         if creeperLaranja:
             filtra_laranja(cv_image)
         
@@ -285,8 +315,6 @@ def roda_todo_frame(imagem):
         if creeperCiano:
             filtra_ciano(cv_image)
 
-        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
-        corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
         try:
             for i in range(len(ids)):
                 if ids[i][0] == 50:
@@ -315,6 +343,7 @@ def roda_todo_frame(imagem):
     
 if __name__=="__main__":
     rospy.init_node("cor")
+    #rospy.init_node("garra")
 
     topico_imagem = "/camera/image/compressed"
 
@@ -325,9 +354,18 @@ if __name__=="__main__":
     print("Usando ", topico_imagem)
 
     velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
+    
+    ombro = rospy.Publisher("/joint1_position_controller/command", Float64, queue_size=1)
+    garra = rospy.Publisher("/joint2_position_controller/command", Float64, queue_size=1)
+
 
     tfl = tf2_ros.TransformListener(tf_buffer) #conversao do sistema de coordenadas 
     tolerancia = 25
+    
+    v_lento = 0.2
+    v_rapido = 0.45
+    w_lento = 0.17
+    w_rapido = 0.40
 
     zero = Twist(Vector3(0,0,0), Vector3(0,0,0))
     esq = Twist(Vector3(0.1,0,0), Vector3(0,0,0.2))
@@ -347,126 +385,203 @@ if __name__=="__main__":
     pistaInteira = True 
     passou_aruco_100 = False
     passou_aruco_200 = False
-    pegaCreeper = False 
+    pegaCreeper = True 
+
+
+    INICIAL= -1
+    AVANCA = 0
+    ALINHAPISTA = 1
+    FIM = 2
+    BIFURCACAO = 3
+    BIFURCACAO2 = 4
+    FIMDEPISTA = 5
+    BIFURCACAOVOLTA = 6
+    ALINHACREEPER = 7
+    PEGACREEPER = 8
     
+    
+    tempo_aruco_100 = 0
+    tempo_aruco_200 = 0
+
+    state = INICIAL
+
+    def inicial():
+        '''
+        Guarda o tempo de quando o robo passa pelos arucos das bifurcações
+        '''
+        global tempo_aruco_100, tempo_aruco_200
+        tempo_aruco_100 = rospy.Time.now()
+        tempo_aruco_200 = rospy.Time.now()
+        
+
+    def avanca():
+        '''
+        Anda pra frente
+        '''
+        vel = frente 
+        velocidade_saida.publish(vel) 
+
+    def alinhapista():
+        '''
+        Alinha o robo na pista
+        '''
+        delta_x = centro_tela - centro_pista[0]
+        max_delta = 150.0
+        w = (delta_x/max_delta)*w_rapido
+        vel = Twist(Vector3(v_lento,0,0), Vector3(0,0,w)) 
+        velocidade_saida.publish(vel)        
+
+    def fim(): 
+        '''
+        Zera a velocidade do robo
+        '''
+        vel = zero        
+        velocidade_saida.publish(vel)
+
+    def bifurcacao():
+        '''
+        Gira 30 graus e zera a area do Aruco quando chega na bifurcação "da perna"
+        '''
+        global area_aruco_100
+        vel = gira30graus        
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_100 = 0 
+
+    def bifurcacao2():
+        '''
+        Gira 70 graus e zera a area do Aruco quando chega na bifurcação "da cabeça"
+        '''
+        global area_aruco_200
+        vel = gira70graus
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_200 = 0 
+
+    def bifurcacaovolta():
+        '''
+        Gira 30 graus quando passa pela segunda vez por uma bifurcação
+        '''
+        global posicao_aruco_100, posicao_aruco_200
+        vel = gira30graus        
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        posicao_aruco_100 = [math.inf, math.inf]
+        posicao_aruco_200 = [math.inf, math.inf]
+   
+    def fimdepista():
+        '''
+        Gira 180 graus quando chega ao fim de uma das "pernas" da pista
+        '''
+        global area_aruco_50, area_aruco_150
+        vel = gira180graus
+        velocidade_saida.publish(vel)
+        rospy.sleep(1)
+        area_aruco_50 = 0
+        area_aruco_150 = 0 
+    
+    def alinhacreeper():
+        '''
+        Alinha o robo ao creeper definido acima
+        '''
+        if creeperCiano:
+            centro_creeper = centro_ciano
+        if creeperLaranja:
+            centro_creeper = centro_laranja
+        if creeperVerde:
+            centro_creeper = centro_verde
+        ombro.publish(-0.6) ## para cima
+        garra.publish(-1.0) ## Aberto
+        delta_x = centro_tela - centro_creeper[0]
+        max_delta = 150.0
+        w = (delta_x/max_delta)*w_rapido
+        vel = Twist(Vector3(v_lento,0,0), Vector3(0,0,w)) 
+        velocidade_saida.publish(vel)  
+
+    def pegacreeper():
+        '''
+        Pega o creeper e volta pra pista
+        '''
+        global pegaCreeper
+        global pistaInteira
+        garra.publish(0.0)  ## Fechado
+        velocidade_saida.publish(gira180graus)
+        rospy.sleep(1)
+        pegaCreeper = False
+        pistaInteira = True 
+
+   
+    def controle():
+        '''
+        Controla qual estado executar
+        '''
+        global state
+        global posicao_aruco_100, posicao_aruco_200    
+        global area_aruco_100, area_aruco_200, area_aruco_50, area_aruco_150
+        global tempo_aruco_100, tempo_aruco_200
+        global pistaInteira
+        
+
+        if pistaInteira:
+            if centro_tela - margem_tela < centro_pista[0] < centro_tela + margem_tela:
+                state = AVANCA
+            else:
+                state = ALINHAPISTA
+
+        if area_aruco_50 > 26000 or area_aruco_150 > 26000:
+            state = FIMDEPISTA
+
+        if area_aruco_100 > 14000:
+            posicao_aruco_100 = posicao_geral
+            tempo_aruco_100 = rospy.Time.now()
+            state = BIFURCACAO
+
+        if area_aruco_200 > 15500:
+            posicao_aruco_200 = posicao_geral
+            tempo_aruco_200 = rospy.Time.now()
+            state = BIFURCACAO2
+
+        if rospy.Time.now() - tempo_aruco_100 >= rospy.Duration.from_sec(5.0):
+            if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
+                if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):
+                    state = BIFURCACAOVOLTA
+
+
+        if rospy.Time.now() - tempo_aruco_200 >= rospy.Duration.from_sec(5.0):
+            if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
+                if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):
+                    state = BIFURCACAOVOLTA    
+
+        if pegaCreeper:
+            if viuCreeper:
+                pistaInteira = False
+                if centro_tela - margem_tela < centro_creeper[0] < centro_tela + margem_tela:
+                    state = AVANCA
+                else:
+                    state = ALINHACREEPER            
+                if distancia < 0.22:
+                    if distancia != 0.0:
+                        state = pegacreeper
+    acoes = {
+        INICIAL:inicial, 
+        AVANCA: avanca, 
+        ALINHAPISTA: alinhapista, 
+        FIM:fim,
+        BIFURCACAO: bifurcacao, 
+        BIFURCACAO2: bifurcacao2, 
+        FIMDEPISTA:fimdepista, 
+        BIFURCACAOVOLTA:bifurcacaovolta, 
+        ALINHACREEPER:alinhacreeper, 
+        PEGACREEPER:pegacreeper}
+        
+    r = rospy.Rate(100) 
 
     try:
         while not rospy.is_shutdown():
-            #for r in resultados:
-                #print(r)
-            if pistaInteira:
-                if passou_aruco_100:
-                    if (posicao_geral[0] - 0.7 <= posicao_aruco_100[0] <= posicao_geral[0] +  0.7):
-                        if (posicao_geral[1] - 0.3 <= posicao_aruco_100[1] <= posicao_geral[1] +  0.3):   
-                            velocidade_saida.publish(zero)
-                            rospy.sleep(2)
-                            velocidade_saida.publish(gira45graus)
-                            rospy.sleep(1)
-                            passou_aruco_100 = [0,0]
-                            passou_aruco_100 = False
+            print("Estado: ", state)
+            acoes[state]()
+            controle()            
+            r.sleep()
 
-                if passou_aruco_200:
-                    if (posicao_geral[0] - 1 <= posicao_aruco_200[0] <= posicao_geral[0] +  1):
-                        print("primeiroif")
-                        if (posicao_geral[1] - 0.5 <= posicao_aruco_200[1] <= posicao_geral[1] +  0.5):  
-                            print("segundoif") 
-                            velocidade_saida.publish(zero)
-                            rospy.sleep(2)
-                            velocidade_saida.publish(gira45graus)
-                            rospy.sleep(1)
-                            passou_aruco_200 = [0,0]
-                            passou_aruco_200 = False
-
-                if area_aruco_50 > 26000 or area_aruco_150 > 26000:
-                    velocidade_saida.publish(zero)
-                    rospy.sleep(2)
-                    velocidade_saida.publish(gira180graus)
-                    rospy.sleep(1)
-                    area_aruco_50 = 0
-                    area_aruco_150 = 0
-
-                if area_aruco_100 > 15000:
-                    posicao_aruco_100 = posicao_geral
-                    velocidade_saida.publish(zero)
-                    rospy.sleep(2)
-                    velocidade_saida.publish(gira30graus)
-                    rospy.sleep(1)
-                    velocidade_saida.publish(andaBifurcacao)
-                    rospy.sleep(2)
-                    area_aruco_100 = 0
-                    passou_aruco_100 = True     
-               
-                if area_aruco_200 > 15500:
-                    velocidade_saida.publish(zero)
-                    rospy.sleep(0.5),
-                    velocidade_saida.publish(frente)
-                    rospy.sleep(2)
-                    posicao_aruco_200 = posicao_geral
-                    velocidade_saida.publish(gira70graus)
-                    rospy.sleep(0.7)
-                    velocidade_saida.publish(andaBifurcacao)
-                    rospy.sleep(3)
-                    area_aruco_200 = 0
-                    passou_aruco_200 = True
-        
-                if anda:
-                    if centro_pista[0] <  centro_tela - margem_tela: 
-                        velocidade_saida.publish(esq)
-                        rospy.sleep(0.001)
-
-                    elif centro_pista[0] >  centro_tela + margem_tela: 
-                        velocidade_saida.publish(dire)
-                        rospy.sleep(0.001)
-                    else: 
-                        velocidade_saida.publish(frente)
-                        rospy.sleep(0.001)
-            
-            if pegaCreeper:
-                if viuCreeper:
-                    pistaInteira = False
-                   
-                    if creeperCiano:
-                        if centro_ciano[0] <  centro_tela - margem_tela: 
-                            velocidade_saida.publish(esq)
-                            rospy.sleep(0.0001)
-
-                        elif centro_ciano[0] >  centro_tela + margem_tela: 
-                            velocidade_saida.publish(dire)
-                            rospy.sleep(0.0001)
-                        else: 
-                            velocidade_saida.publish(frente)
-                            rospy.sleep(0.0001)
-                    
-                    if creeperVerde:
-                        if centro_verde[0] <  centro_tela - margem_tela: 
-                            velocidade_saida.publish(esq)
-                            rospy.sleep(0.0001)
-
-                        elif centro_verde[0] >  centro_tela + margem_tela: 
-                            velocidade_saida.publish(dire)
-                            rospy.sleep(0.0001)
-                        else: 
-                            velocidade_saida.publish(frente)
-                            rospy.sleep(0.0001)
-
-                    if creeperLaranja:
-                        if centro_laranja[0] <  centro_tela - margem_tela: 
-                            velocidade_saida.publish(esq)
-                            rospy.sleep(0.0001)
-
-                        elif centro_laranja[0] >  centro_tela + margem_tela: 
-                            velocidade_saida.publish(dire)
-                            rospy.sleep(0.0001)
-                        else: 
-                            velocidade_saida.publish(frente)
-                            rospy.sleep(0.0001)
-                    
-                if distancia < 0.23:
-                    if distancia != 0.0:
-                        print("oi")
-                        velocidade_saida.publish(gira180graus)
-                        rospy.sleep(1)
-                        pegaCreeper = False
-                        pistaInteira = True
     except rospy.ROSInterruptException:
         print("Ocorreu uma exceção com o rospy")
