@@ -95,8 +95,8 @@ class projeto:
 
         '''Objetivo'''
         #self.goal = ("blue", 12, "dog")
-        #self.goal = ("green", 23, "horse")
-        self.goal = ("orange", 11, "cow")
+        self.goal = ("green", 23, "horse")
+        #self.goal = ("orange", 11, "cow")
 
         self.cor = self.goal[0]
         self.id_aruco = self.goal[1]
@@ -558,8 +558,11 @@ class projeto:
         self.ombro.publish(2.0) ## para cima
         if self.cor == 'green':
             self.velocidade_saida.publish(self.gira180graus)
+        elif self.cor == 'blue':
+            self.velocidade_saida.publish(self.gira50graus)
         else:
-            self.velocidade_saida.publish(self.gira45graus)
+            self.velocidade_saida.publish(self.gira180graus)
+
         comeca_girar = rospy.Time.now()
         while rospy.Time.now() - comeca_girar <= rospy.Duration.from_sec(1.0):
             pass
