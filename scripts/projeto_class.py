@@ -94,9 +94,9 @@ class projeto:
         
 
         '''Objetivo'''
-        #self.goal = ("blue", 12, "dog")
+        self.goal = ("blue", 12, "dog")
         #self.goal = ("green", 23, "horse")
-        self.goal = ("orange", 11, "cow")
+        #self.goal = ("orange", 11, "cow")
 
         self.cor = self.goal[0]
         self.id_aruco = self.goal[1]
